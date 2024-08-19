@@ -38,7 +38,7 @@ async function initMap() {
     });
   }
 
-  map.data.loadGeoJson('Federal_American_Indian_Reservations_v1_-6588254737828329119.geojson');
+  map.data.loadGeoJson('fortHall.geojson');
   map.data.setStyle({
     fillColor: '#FFCCCC',
     strokeColor: 'red',
