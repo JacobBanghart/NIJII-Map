@@ -24,6 +24,8 @@ async function initMap() {
     {
       position: new google.maps.LatLng(43.02720939984191, -112.4333469669332),
       type: "star",
+      title: "<h3>Fort Hall</h3>",
+      body: "<p>Other <img/></p>"
     },
   ];
 
