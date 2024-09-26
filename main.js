@@ -64,7 +64,7 @@ import Fill from "ol/style/Fill";
     ],
     view: new View({
       center: fromLonLat([-98.5795, 39.8282]),
-      zoom: 5,
+      zoom: 4,
     }),
   });
 
