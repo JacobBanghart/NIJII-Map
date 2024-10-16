@@ -9,7 +9,7 @@ import VectorSource from "ol/source/Vector";
 import Style from "ol/style/Style";
 import Icon from "ol/style/Icon";
 import star from "./star.svg";
-import snowflake from "./snowflake.svg";
+import homebase from "./homebase.svg";
 
 (async () => {
   let popupOpen = false;
@@ -51,10 +51,10 @@ import snowflake from "./snowflake.svg";
         src: star,
       }),
     }),
-    snowflake: new Style({
+    homebase: new Style({
       image: new Icon({
         anchor: [0.53, 0.65],
-        src: snowflake,
+        src: homebase,
       }),
     }),
   };
