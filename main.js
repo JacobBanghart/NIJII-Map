@@ -11,11 +11,9 @@ import Icon from "ol/style/Icon";
 import star from "./star.svg";
 import homebase from "./homebase.svg";
 
+let popupOpen = false;
 (async () => {
-  let popupOpen = false;
-  const request = await fetch(
-    "https://jacobmbanghart.wixsite.com/kittens/_functions/multiply"
-  );
+  const request = await fetch("https://nijii.org/_functions/points");
   const results = await request.json();
   console.log(results);
   const popup = new Overlay({
@@ -88,18 +86,7 @@ import homebase from "./homebase.svg";
     });
 
     if (feature) {
-      var coordinates = feature.getGeometry().getCoordinates();
-      // Adjust this part depending on your data; here we're assuming the feature has a 'name' property
-      var content = `<strong>${feature.get("title")}</strong><br>${feature.get(
-        "content"
-      )}`;
-
-      // Set the popup content
-      document.getElementById("popup-content").innerHTML = content;
-
-      // Position the popup at the feature's coordinates
-      popup.setPosition(coordinates);
-      popupOpen = true;
+      openPopup(feature, popup);
     } else {
       // If no feature is clicked, close the popup
       popup.setPosition(undefined);
@@ -128,4 +115,22 @@ import homebase from "./homebase.svg";
     closer.blur();
     return false;
   };
+
+  // open popup on map load
+  let feature = points.find((i) => /nijii/.test(i.get("title").toLowerCase()));
+  popupOpen = openPopup(feature, popup);
 })();
+function openPopup(feature, popup) {
+  var coordinates = feature.getGeometry().getCoordinates();
+  // Adjust this part depending on your data; here we're assuming the feature has a 'name' property
+  var content = `<strong>${feature.get("title")}</strong><br>${feature.get(
+    "content"
+  )}`;
+
+  // Set the popup content
+  document.getElementById("popup-content").innerHTML = content;
+
+  // Position the popup at the feature's coordinates
+  popup.setPosition(coordinates);
+  popupOpen = true;
+}
