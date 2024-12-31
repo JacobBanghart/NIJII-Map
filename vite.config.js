@@ -2,5 +2,5 @@ export default {
   build: {
     sourcemap: true,
   },
-  base: "/map",
+  base: "/NIJII-Map",
 };
