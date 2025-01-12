@@ -55,3 +55,9 @@ html, body {
 .ol-popup-closer:after {
   content: "✖";
 }
+@media (max-width: 600px) {
+  .ol-popup {
+    font-size: 12px; /* Smaller font size for small screens */
+    min-width: 200px;
+  }
+}
