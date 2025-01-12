@@ -11,12 +11,49 @@ import Icon from "ol/style/Icon";
 import star from "./star.svg";
 import homebase from "./homebase.svg";
 
+// common use case leaves the box cut off at the top
+// width 655 and height 540 in an iframe lets optimize for that
+// by centering the map on the US moving the center of the us up a bit
+// center: fromLonLat([-98.5795, 39.8283]),
+const US_CENTER_COORDINATES = [-98.5795, 46];
+const ZOOM_CAP = 4;
+const ZOOM_SCALE_FACTOR = 0.004;
+const ZOOM_OFFSET = 1.38;
+
 let popupOpen = false;
+
 (async () => {
-  const request = await fetch("https://nijii.org/_functions/points");
-  const results = await request.json();
-  console.log(results);
-  const popup = new Overlay({
+  const points = await fetchPoints();
+  const popup = createPopup();
+  const map = initializeMap(popup, points);
+
+  map.on("singleclick", (event) => handleMapClick(event, map, popup));
+  map.on("pointermove", (event) => handlePointerMove(event, map));
+
+  document.getElementById("popup-closer").onclick = () => closePopup(popup);
+
+  const initialFeature = points.find((i) => /nijii/.test(i.get("title").toLowerCase()));
+  popupOpen = openPopup(initialFeature, popup);
+})();
+
+async function fetchPoints() {
+  const response = await fetch("https://nijii.org/_functions/points");
+  const results = await response.json();
+  return results.map((row) => createFeature(row));
+}
+
+function createFeature(row) {
+  return new Feature({
+    type: "icon",
+    geometry: new Point(fromLonLat([row.address.location.longitude, row.address.location.latitude])),
+    title: row.popupTitle,
+    icon: row.icon,
+    content: row.popupContent,
+  });
+}
+
+function createPopup() {
+  return new Overlay({
     element: document.getElementById("popup"),
     autoPan: {
       animation: {
@@ -24,24 +61,28 @@ let popupOpen = false;
       },
     },
   });
+}
 
-  const points = [];
-  results.forEach((row) => {
-    points.push(
-      new Feature({
-        type: "icon",
-        geometry: new Point(
-          fromLonLat([
-            row.address.location.longitude,
-            row.address.location.latitude,
-          ])
-        ),
-        title: row.popupTitle,
-        icon: row.icon,
-        content: row.popupContent,
-      })
-    );
+function initializeMap(popup, points) {
+  const map = new Map({
+    target: "map",
+    layers: [
+      new TileLayer({
+        source: new OSM(),
+      }),
+      createVectorLayer(points),
+    ],
+    view: new View({
+      center: fromLonLat(US_CENTER_COORDINATES),
+      zoom: calculateZoom(),
+    }),
   });
+
+  map.addOverlay(popup);
+  return map;
+}
+
+function createVectorLayer(points) {
   const icons = {
     star: new Style({
       image: new Icon({
@@ -56,92 +97,55 @@ let popupOpen = false;
       }),
     }),
   };
-  const vectorLayer = new VectorLayer({
+
+  return new VectorLayer({
     source: new VectorSource({
-      features: [...points],
+      features: points,
     }),
     style: (feature) => icons[feature.get("icon")],
   });
+}
 
-  const map = new Map({
-    target: "map",
-    layers: [
-      new TileLayer({
-        source: new OSM({}),
-      }),
-    ],
-    view: new View({
-      // common use case leaves the box at about 
-      // width 655 and height 540 in an iframe lets optimize for that
-      // by centering the map on the US moving the center of the us up a bit
-      // center: fromLonLat([-98.5795, 39.8283]),
-      center: fromLonLat([-98.5795, 46]),
-      // zoom on smaller devices does not zoom out it just crops so we need
-      // to scale it on smaller devices target 280px width and 231px height
-      zoom: calculateZoom(),
-    }),
-  });
+function handleMapClick(event, map, popup) {
+  const feature = map.forEachFeatureAtPixel(event.pixel, (feature) => feature);
 
-  map.addLayer(vectorLayer);
-  map.addOverlay(popup);
-  // Handle map clicks to display popup
-  map.on("singleclick", function (event) {
-    // Get the clicked feature
-    var feature = map.forEachFeatureAtPixel(event.pixel, function (feature) {
-      return feature;
-    });
+  if (feature) {
+    openPopup(feature, popup);
+  } else {
+    closePopup(popup);
+  }
+}
 
-    if (feature) {
-      openPopup(feature, popup);
-    } else {
-      // If no feature is clicked, close the popup
-      popup.setPosition(undefined);
-      document.getElementById("popup-closer").blur();
-      popupOpen = false;
-    }
-  });
-  map.on("pointermove", function (event) {
-    var feature = map.forEachFeatureAtPixel(event.pixel, function (feature) {
-      return feature;
-    });
+function handlePointerMove(event, map) {
+  const feature = map.forEachFeatureAtPixel(event.pixel, (feature) => feature);
 
-    if (feature && !popupOpen) {
-      // Change the cursor to a pointer when hovering over a feature
-      map.getTargetElement().style.cursor = "pointer";
-    } else {
-      // Reset the cursor and hide the popup when not hovering over a feature
-      map.getTargetElement().style.cursor = "";
-    }
-  });
-  // Close the popup when the "x" is clicked
-  var closer = document.getElementById("popup-closer");
-  closer.onclick = function () {
-    popup.setPosition(undefined);
-    popupOpen = false;
-    closer.blur();
-    return false;
-  };
+  if (feature && !popupOpen) {
+    map.getTargetElement().style.cursor = "pointer";
+  } else {
+    map.getTargetElement().style.cursor = "";
+  }
+}
 
-  // open popup on map load
-  let feature = points.find((i) => /nijii/.test(i.get("title").toLowerCase()));
-  popupOpen = openPopup(feature, popup);
-})();
+function closePopup(popup) {
+  popup.setPosition(undefined);
+  popupOpen = false;
+  document.getElementById("popup-closer").blur();
+  return false;
+}
+
 function openPopup(feature, popup) {
-  var coordinates = feature.getGeometry().getCoordinates();
-  // Adjust this part depending on your data; here we're assuming the feature has a 'name' property
-  var content = `<strong>${feature.get("title")}</strong><br>${feature.get(
-    "content"
-  )}`;
+  const coordinates = feature.getGeometry().getCoordinates();
+  const content = `<strong>${feature.get("title")}</strong><br>${feature.get("content")}`;
 
-  // Set the popup content
   document.getElementById("popup-content").innerHTML = content;
-
-  // Position the popup at the feature's coordinates
   popup.setPosition(coordinates);
   popupOpen = true;
 }
+
+// zoom on smaller devices does not zoom out it just crops so we need
+// to scale it on smaller devices target 280px width and 231px height
 function calculateZoom() {
-  const width = window.innerWidth; // Get the current window width
-  const zoom = 0.004 * width + 1.38;
-  return Math.min(4, zoom); // Cap the zoom at 4
+  const width = window.innerWidth;
+  const zoom = ZOOM_SCALE_FACTOR * width + ZOOM_OFFSET;
+  return Math.min(ZOOM_CAP, zoom);
 }
