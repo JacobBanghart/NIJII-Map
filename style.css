@@ -57,7 +57,15 @@ html, body {
 }
 @media (max-width: 600px) {
   .ol-popup {
-    font-size: 12px; /* Smaller font size for small screens */
-    min-width: 200px;
+      min-width: calc(100px + (100 * ((100vw - 280px) / (600 - 280))));
+      font-size: calc(8px + (4 * ((100vw - 280px) / (600 - 280))));
+  }
+}
+
+/* Minimum width and font size for very small screens */
+@media (max-width: 280px) {
+  .ol-popup {
+      min-width: 140px;
+      font-size: 8.5px;
   }
 }

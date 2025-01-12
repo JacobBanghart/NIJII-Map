@@ -71,8 +71,14 @@ let popupOpen = false;
       }),
     ],
     view: new View({
-      center: fromLonLat([-98.5795, 39.8282]),
-      zoom: 4,
+      // common use case leaves the box at about 
+      // width 655 and height 540 in an iframe lets optimize for that
+      // by centering the map on the US moving the center of the us up a bit
+      // center: fromLonLat([-98.5795, 39.8283]),
+      center: fromLonLat([-98.5795, 46]),
+      // zoom on smaller devices does not zoom out it just crops so we need
+      // to scale it on smaller devices target 280px width and 231px height
+      zoom: calculateZoom(),
     }),
   });
 
@@ -133,4 +139,9 @@ function openPopup(feature, popup) {
   // Position the popup at the feature's coordinates
   popup.setPosition(coordinates);
   popupOpen = true;
+}
+function calculateZoom() {
+  const width = window.innerWidth; // Get the current window width
+  const zoom = 0.004 * width + 1.38;
+  return Math.min(4, zoom); // Cap the zoom at 4
 }
