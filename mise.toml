@@ -1,0 +1,3 @@
+[tools]
+# Same major as CI (actions/setup-node node-version 20).
+node = "20.20.2"
